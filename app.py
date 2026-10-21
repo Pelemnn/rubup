@@ -10,6 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import database
 import comments_generator
+import tiktok_finder
 
 # Константи та конфігурація
 API_ID = int(os.environ.get("API_ID", 0))
@@ -194,6 +195,8 @@ async def main():
                 help_text = (
                     "🤖 **RubUP Helper Bot активний!**\n\n"
                     "📅 **Автозбір картинок:** 00:00, 08:00, 16:00 (надсилає тільки 5 картинок)\n\n"
+                    "🎬 **Відео TikTok під коментарі:**\n"
+                    "• `/video` або `/video 5` — знаходить відео з потрібними тегами та дає готовий коментар під кожне!\n\n"
                     "💬 **Генерація коментарів для TikTok:**\n"
                     "• `/gen` — згенерувати 5 унікальних коментарів\n"
                     "• `/gen 10` — згенерувати від 1 до 30 коментарів\n\n"
@@ -206,6 +209,25 @@ async def main():
                     "• `/zvit <к-сть> <сума>` — додати звіт вручну (напр: `/zvit 10 30`)\n"
                 )
                 await event.reply(help_text)
+
+            elif text.startswith("/video"):
+                parts = text.split()
+                count = 5
+                if len(parts) > 1 and parts[1].isdigit():
+                    count = max(1, min(int(parts[1]), 10))
+                
+                await event.reply(f"🔎 Шукаю {count} підходящих відео в TikTok за тегами...")
+                vids = await tiktok_finder.get_tiktok_videos(count)
+                comments = comments_generator.generate_comments_pack(len(vids))
+                
+                reply_lines = [f"🎯 **Знайдено відео під коментарі ({len(vids)} шт.):**\n"]
+                for i, (v, c) in enumerate(zip(vids, comments), 1):
+                    reply_lines.append(f"**#{i} Тег:** `{v['tag']}`")
+                    reply_lines.append(f"🔗 [Відкрити відео в TikTok]({v['url']})")
+                    reply_lines.append(f"💬 Скопіювати комент:")
+                    reply_lines.append(f"`{c}`\n")
+                    
+                await event.reply("\n".join(reply_lines), link_preview=False)
 
             elif text.startswith("/gen"):
                 parts = text.split()

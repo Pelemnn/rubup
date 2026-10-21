@@ -1,72 +1,119 @@
 import random
 
-# Шаблони та частини речень для побудови унікальних людських коментарів
-OPENINGS = [
-    "чисто", "реально", "жесть", "не ожидал вообще,", "на халяву", 
-    "просто кайф,", "спс за подгон,", "норм тема,", "лол,", "огонь просто,",
-    "наконец-то", "сегодня прям везет,", "ну наконец-то нормальный дроп,",
-    "по красоте", "легчайший занос,"
+# Шаблони, розбиті за граматичними групами для абсолютно природного вигляду
+TEMPLATES_RUBUP = [
+    # Питання / залучення (TikTok обожнює питання, такі коменти ніколи не банять)
+    "кто-то еще пробовал крутить в RubUP или я один такой везучий?",
+    "интересно, мишку или колечко в RubUP выгоднее забирать?",
+    "а в RubUP сейчас реально шанс подняли или это чисто рандом?",
+    "стоит скин забирать или обменять в RubUP на баланс?",
+    "кто шарит, в RubUP до скольки кейсы обновляются?",
+    "это с какого кейса в RubUP такой дроп упал?",
+    "выводить сразу или крутануть еще разок в RubUP?",
+    
+    # Живі реакції та емоції
+    "да ладно, с первой же попытки в RubUP, я в шоке",
+    "чисто на остаток баланса в RubUP зашел и выдало",
+    "вроде ширп по началу падал, а потом RubUP прям порадовал",
+    "не зря мне кент советовал RubUP, реально годный обмен",
+    "сижу в шоке, RubUP реально выдал скин, думал скам какой-то",
+    "норм так вечер начался, спс RubUP за подарок",
+    "честно не верил пока сам в RubUP не забрал",
+    "чисто ради интереса чекнул RubUP и сразу окуп"
 ]
 
-ACTIONS = [
-    "с фри кейсика выдало {keyword}",
-    "забрал скинчик через {keyword}",
-    "с промика капнуло {keyword}",
-    "окупился моментально {keyword}",
-    "спс за обмен и подарок {keyword}",
-    "поднял халявный скин с {keyword}",
-    "мишку или колечко в {keyword} — что бы выбрали?",
-    "а в {keyword} реально отдача лучше",
-    "вроде ширп, но приятно, спс {keyword}",
-    "залутал подарок {keyword}",
-    "изи плюс скин с {keyword}",
-    "просто с первого кейса выдало в {keyword}",
-    "забрал мишку в {keyword}",
-    "лучший обменник и кейсы {keyword}",
-    "чисто на шару скин забрал в {keyword}"
+TEMPLATES_AT_RUBUP = [
+    "спс за быстрый обмен @RubUP, скин уже в инвентаре",
+    "не ожидал такой подгон, спасибо @RubUP 🔥",
+    "респект поддержке @RubUP, быстро помогли вывести",
+    "годный скин залетел, спс @RubUP",
+    "лучшие просто, от души @RubUP",
+    "@RubUP спасибо за подгон, рили приятно",
+    "от души @RubUP за быстрый вывод, все пришло"
 ]
 
-KEYWORDS = [
-    "RubUP",
-    "@RubUP",
-    "рубап",
-    "в рубапе",
-    "рубапом"
+TEMPLATES_V_RUBAPE = [
+    "в рубапе сейчас походу реально дроп подкрутили ахах",
+    "вчера слил везде, а в рубапе за 2 клика окупился",
+    "давно в рубапе такие скины начали падать?",
+    "в рубапе обменник работает в разы быстрее чем на других сайтах",
+    "чисто на шару зашел и в рубапе сразу плюс",
+    "лучше бы я сразу в рубапе открывал, а не сливал баланс",
+    "в рубапе кейсики прям радуют сегодня"
 ]
 
-ENDINGS = [
-    "🔥", "👍", "😎", "😂", "🚀", "кому еще так сыпало?",
-    "го еще!", "рекомендую", "топчик", "кто уже крутил?",
-    "кайфуем", "норм окуп", "годнота"
+TEMPLATES_RUBAPOM = [
+    "пользуюсь рубапом уже пару месяцев, пока ни разу не подводил",
+    "затрейдил рубапом старый ширп на нормальный скинчик",
+    "рубапом вывод моментальный, даже ждать не пришлось",
+    "обменял рубапом скин, пришел буквально за пару минут",
+    "чисто рубапом залутал нормальный подарок, кайф",
+    "проверил рубапом обмен, все четко и без задержек"
+]
+
+TEMPLATES_RUBAP = [
+    "рубап реально удивил, не ожидал такой дроп",
+    "рубап чисто выручил со скином, спасибо",
+    "спс рубап за подгончик, буду еще тестить",
+    "норм тема этот рубап, думал фигня",
+    "рубап лучший в плане трейдов сейчас, факт",
+    "рубап просто топчик, скин уже на акке"
+]
+
+# Варіації розділових знаків та живих приписок
+REACTIONS = [
+    "", "", " 🔥", " 👍", " 😂", " 🤝", " 😱", " 👀", 
+    " лол", " рили кайф", " красавцы", " чекните сами", " рекомендую"
 ]
 
 def generate_single_comment() -> str:
-    opening = random.choice(OPENINGS) if random.random() > 0.4 else ""
-    keyword = random.choice(KEYWORDS)
-    action_template = random.choice(ACTIONS)
-    ending = random.choice(ENDINGS) if random.random() > 0.3 else ""
+    # Випадково вибираємо природну граматичну категорію
+    category = random.choices(
+        [TEMPLATES_RUBUP, TEMPLATES_AT_RUBUP, TEMPLATES_V_RUBAPE, TEMPLATES_RUBAPOM, TEMPLATES_RUBAP],
+        weights=[35, 15, 20, 15, 15]
+    )[0]
     
-    # Підставляємо правильну форму ключа
-    # Якщо дія містить "в {keyword}", а обране слово "в рубапе", замінюємо щоб не було "в в рубапе"
-    if "в {keyword}" in action_template and keyword == "в рубапе":
-        keyword = "рубапе"
-    elif "{keyword}" in action_template and keyword == "@RubUP" and random.random() > 0.5:
-        keyword = "RubUP"
-        
-    core = action_template.format(keyword=keyword)
+    text = random.choice(category)
+    reaction = random.choice(REACTIONS)
     
-    parts = [p for p in [opening, core, ending] if p]
-    comment = " ".join(parts).strip()
-    # Робимо першу букву великою з певною ймовірністю (для природності іноді з малої, як у тт)
-    if random.random() > 0.5 and comment:
+    # Іноді змінюємо регістр першої літери (як у живому TikTok)
+    comment = text + reaction
+    if random.random() > 0.4:
         comment = comment[0].upper() + comment[1:]
-    return comment
+    else:
+        comment = comment[0].lower() + comment[1:]
+        
+    return comment.strip()
 
 def generate_comments_pack(count: int = 5) -> list[str]:
     count = max(1, min(count, 30))
-    comments = set()
-    attempts = 0
-    while len(comments) < count and attempts < 200:
-        attempts += 1
-        comments.add(generate_single_comment())
-    return list(comments)
+    # Збираємо унікальні без повторів
+    comments = []
+    seen = set()
+    
+    # Перемішуємо всі шаблони
+    all_pool = TEMPLATES_RUBUP + TEMPLATES_AT_RUBUP + TEMPLATES_V_RUBAPE + TEMPLATES_RUBAPOM + TEMPLATES_RUBAP
+    random.shuffle(all_pool)
+    
+    for base in all_pool:
+        if len(comments) >= count:
+            break
+        variant = base + random.choice(REACTIONS)
+        if random.random() > 0.4:
+            variant = variant[0].upper() + variant[1:]
+        else:
+            variant = variant[0].lower() + variant[1:]
+        variant = variant.strip()
+        
+        if variant not in seen:
+            seen.add(variant)
+            comments.append(variant)
+            
+    # Якщо просили більше, ніж у базі, генеруємо варіації
+    while len(comments) < count:
+        c = generate_single_comment()
+        if c not in seen:
+            seen.add(c)
+            comments.append(c)
+            
+    return comments
