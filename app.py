@@ -213,7 +213,7 @@ async def main():
         # Обробка натискання кнопок вибору тегу
         @client.on(events.CallbackQuery)
         async def handle_callback_query(event):
-            data = event.data.decode("utf-8")
+            data = event.data.decode("utf-8", errors="ignore")
             if data.startswith("tag:"):
                 selected_tag = data.split("tag:")[1]
                 await event.answer(f"Обрано: #{selected_tag}")
@@ -245,12 +245,12 @@ async def main():
                 await event.reply(help_text)
 
             elif text == "/video":
-                # Показуємо зручні кнопки вибору тегу
+                # Передаємо callback_data як рядок або коректний utf-8 encode
                 tag_buttons = [
-                    [Button.inline("🔥 #кс2", b"tag:кс2"), Button.inline("🎮 #cs2", b"tag:cs2"), Button.inline("💰 #rubup", b"tag:rubup")],
-                    [Button.inline("⚡ #меллстрой", b"tag:меллстрой"), Button.inline("😎 #бустер", b"tag:бустер"), Button.inline("🎁 #тгподарки", b"tag:тгподарки")],
-                    [Button.inline("💎 #нфт", b"tag:нфт"), Button.inline("🎯 #dota2", b"tag:dota2"), Button.inline("🎲 #кейсер", b"tag:кейсер")],
-                    [Button.inline("✨ Будь-який (рандом)", b"tag:random")]
+                    [Button.inline("🔥 #кс2", "tag:кс2".encode('utf-8')), Button.inline("🎮 #cs2", "tag:cs2".encode('utf-8')), Button.inline("💰 #rubup", "tag:rubup".encode('utf-8'))],
+                    [Button.inline("⚡ #меллстрой", "tag:меллстрой".encode('utf-8')), Button.inline("😎 #бустер", "tag:бустер".encode('utf-8')), Button.inline("🎁 #тгподарки", "tag:тгподарки".encode('utf-8'))],
+                    [Button.inline("💎 #нфт", "tag:нфт".encode('utf-8')), Button.inline("🎯 #dota2", "tag:dota2".encode('utf-8')), Button.inline("🎲 #кейсер", "tag:кейсер".encode('utf-8'))],
+                    [Button.inline("✨ Будь-який (рандом)", "tag:random".encode('utf-8'))]
                 ]
                 await event.reply("🎯 **Оберіть хештег для пошуку свіжих відео:**", buttons=tag_buttons)
 
