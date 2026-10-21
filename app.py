@@ -196,7 +196,7 @@ async def main():
                     "🤖 **RubUP Helper Bot активний!**\n\n"
                     "📅 **Автозбір картинок:** 00:00, 08:00, 16:00 (надсилає тільки 5 картинок)\n\n"
                     "🎬 **Відео TikTok під коментарі:**\n"
-                    "• `/video` або `/video 5` — знаходить відео з потрібними тегами та дає готовий коментар під кожне!\n\n"
+                    "• `/video` або `/video 5` — знаходить прямі відео з тегами та генерує під них коментарі\n\n"
                     "💬 **Генерація коментарів для TikTok:**\n"
                     "• `/gen` — згенерувати 5 унікальних коментарів\n"
                     "• `/gen 10` — згенерувати від 1 до 30 коментарів\n\n"
@@ -216,14 +216,18 @@ async def main():
                 if len(parts) > 1 and parts[1].isdigit():
                     count = max(1, min(int(parts[1]), 10))
                 
-                await event.reply(f"🔎 Шукаю {count} підходящих відео в TikTok за тегами...")
+                await event.reply(f"🔎 Шукаю прямі посилання на відео в TikTok...")
                 vids = await tiktok_finder.get_tiktok_videos(count)
-                comments = comments_generator.generate_comments_pack(len(vids))
                 
-                reply_lines = [f"🎯 **Знайдено відео під коментарі ({len(vids)} шт.):**\n"]
+                if not vids:
+                    await event.reply("⚠️ TikTok зараз тимчасово не повернув прямі ID відео. Спробуйте ще раз команду `/video` через 10 секунд.")
+                    return
+
+                comments = comments_generator.generate_comments_pack(len(vids))
+                reply_lines = [f"🎯 **Знайдено {len(vids)} прямих відео під коментарі:**\n"]
                 for i, (v, c) in enumerate(zip(vids, comments), 1):
-                    reply_lines.append(f"**#{i} Тег:** `{v['tag']}`")
-                    reply_lines.append(f"🔗 [Відкрити відео в TikTok]({v['url']})")
+                    reply_lines.append(f"🎬 **Відео #{i}** ({v['tag']})")
+                    reply_lines.append(f"{v['url']}")
                     reply_lines.append(f"💬 Скопіювати комент:")
                     reply_lines.append(f"`{c}`\n")
                     
