@@ -7,6 +7,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "stats.db")
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+    # Таблиця звітів про гроші
     cur.execute('''
         CREATE TABLE IF NOT EXISTS income_reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,6 +18,35 @@ def init_db():
             source TEXT DEFAULT 'auto'
         )
     ''')
+    # Таблиця використаних відео (щоб 1 відео = 1 коментар і без повторів)
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS used_videos (
+            video_id TEXT PRIMARY KEY,
+            url TEXT,
+            tag TEXT,
+            used_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def is_video_used(video_id: str) -> bool:
+    """Перевіряє, чи вже відправлялося це відео раніше"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute('SELECT 1 FROM used_videos WHERE video_id = ?', (video_id,))
+    exists = cur.fetchone() is not None
+    conn.close()
+    return exists
+
+def mark_video_used(video_id: str, url: str, tag: str):
+    """Позначає відео як використане"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute('''
+        INSERT OR IGNORE INTO used_videos (video_id, url, tag)
+        VALUES (?, ?, ?)
+    ''', (video_id, url, tag))
     conn.commit()
     conn.close()
 

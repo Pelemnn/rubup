@@ -4,7 +4,7 @@ import re
 import pytz
 from datetime import datetime
 from aiohttp import web
-from telethon import TelegramClient, events
+from telethon import TelegramClient, events, Button
 from telethon.sessions import StringSession
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -33,7 +33,6 @@ async def collect_five_images(client: TelegramClient):
         try:
             bot_entity = await client.get_input_entity(RUBUP_COMMENT_BOT)
             
-            # Знаходимо останнє повідомлення з кнопками в боті
             messages = await client.get_messages(bot_entity, limit=5)
             target_msg = None
             
@@ -143,6 +142,31 @@ async def init_web_app():
     return app
 
 
+async def send_videos_for_tag(client: TelegramClient, tag: str, count: int = 5):
+    """Шукає і надсилає відео з коментарями за обраним тегом"""
+    clean_tag = None if tag == "random" else tag
+    tag_name = f"#{tag}" if clean_tag else "рандомними"
+    
+    status_msg = await client.send_message("me", f"🔎 Шукаю {count} нових унікальних відео за тегом {tag_name}...")
+    
+    vids = await tiktok_finder.get_tiktok_videos(count=count, specific_tag=clean_tag)
+    
+    if not vids:
+        await status_msg.edit("⚠️ Нових свіжих відео за цим тегом не знайдено (можливо, всі вже використані). Спробуйте інший тег!")
+        return
+
+    comments = comments_generator.generate_comments_pack(len(vids))
+    reply_lines = [f"🎯 **Знайдено {len(vids)} унікальних відео ({tag_name}, без повторів):**\n"]
+    for i, (v, c) in enumerate(zip(vids, comments), 1):
+        reply_lines.append(f"🎬 **#{i} Відео ({v['tag']}):**")
+        reply_lines.append(f"{v['url']}")
+        reply_lines.append(f"💬 Скопіювати комент (тапніть):")
+        reply_lines.append(f"`{c}`\n")
+        
+    await status_msg.delete()
+    await client.send_message("me", "\n".join(reply_lines), link_preview=False)
+
+
 async def main():
     database.init_db()
 
@@ -186,6 +210,15 @@ async def main():
             except Exception as e:
                 print(f"[Msg Handler Error] {e}")
 
+        # Обробка натискання кнопок вибору тегу
+        @client.on(events.CallbackQuery)
+        async def handle_callback_query(event):
+            data = event.data.decode("utf-8")
+            if data.startswith("tag:"):
+                selected_tag = data.split("tag:")[1]
+                await event.answer(f"Обрано: #{selected_tag}")
+                await send_videos_for_tag(client, tag=selected_tag, count=5)
+
         # Реєстрація команд користувача у "Saved Messages"
         @client.on(events.NewMessage(chats="me"))
         async def handle_saved_messages_commands(event):
@@ -195,8 +228,9 @@ async def main():
                 help_text = (
                     "🤖 **RubUP Helper Bot активний!**\n\n"
                     "📅 **Автозбір картинок:** 00:00, 08:00, 16:00 (надсилає тільки 5 картинок)\n\n"
-                    "🎬 **Прямі свіжі відео TikTok під коментарі:**\n"
-                    "• `/video` або `/video 5` — знаходить прямі посилання на конкретні відео та дає готовий коментар під кожне!\n\n"
+                    "🎬 **Відео TikTok під коментарі:**\n"
+                    "• `/video` — відкриває меню вибору хештегу кнопками\n"
+                    "• `/video 5 кс2` — швидкий пошук без кнопок за конкретним тегом\n\n"
                     "💬 **Генерація коментарів для TikTok:**\n"
                     "• `/gen` — згенерувати 5 унікальних коментарів\n"
                     "• `/gen 10` — згенерувати від 1 до 30 коментарів\n\n"
@@ -210,28 +244,34 @@ async def main():
                 )
                 await event.reply(help_text)
 
-            elif text.startswith("/video"):
+            elif text == "/video":
+                # Показуємо зручні кнопки вибору тегу
+                tag_buttons = [
+                    [Button.inline("🔥 #кс2", b"tag:кс2"), Button.inline("🎮 #cs2", b"tag:cs2"), Button.inline("💰 #rubup", b"tag:rubup")],
+                    [Button.inline("⚡ #меллстрой", b"tag:меллстрой"), Button.inline("😎 #бустер", b"tag:бустер"), Button.inline("🎁 #тгподарки", b"tag:тгподарки")],
+                    [Button.inline("💎 #нфт", b"tag:нфт"), Button.inline("🎯 #dota2", b"tag:dota2"), Button.inline("🎲 #кейсер", b"tag:кейсер")],
+                    [Button.inline("✨ Будь-який (рандом)", b"tag:random")]
+                ]
+                await event.reply("🎯 **Оберіть хештег для пошуку свіжих відео:**", buttons=tag_buttons)
+
+            elif text.startswith("/video "):
                 parts = text.split()
                 count = 5
-                if len(parts) > 1 and parts[1].isdigit():
-                    count = max(1, min(int(parts[1]), 10))
+                specific_tag = None
                 
-                await event.reply(f"🔎 Шукаю {count} прямих свіжих відео в TikTok...")
-                vids = await tiktok_finder.get_tiktok_videos(count)
+                if len(parts) == 2:
+                    if parts[1].isdigit():
+                        count = max(1, min(int(parts[1]), 10))
+                    else:
+                        specific_tag = parts[1]
+                elif len(parts) >= 3:
+                    if parts[1].isdigit():
+                        count = max(1, min(int(parts[1]), 10))
+                        specific_tag = parts[2]
+                    else:
+                        specific_tag = parts[1]
                 
-                if not vids:
-                    await event.reply("⚠️ Не вдалося отримати відео. Спробуйте ще раз команду `/video`.")
-                    return
-
-                comments = comments_generator.generate_comments_pack(len(vids))
-                reply_lines = [f"🎯 **Знайдено {len(vids)} прямих відео (осінь 2026):**\n"]
-                for i, (v, c) in enumerate(zip(vids, comments), 1):
-                    reply_lines.append(f"🎬 **#{i} Відео ({v['tag']}):**")
-                    reply_lines.append(f"{v['url']}")
-                    reply_lines.append(f"💬 Скопіювати комент (тапніть):")
-                    reply_lines.append(f"`{c}`\n")
-                    
-                await event.reply("\n".join(reply_lines), link_preview=False)
+                await send_videos_for_tag(client, tag=specific_tag or "random", count=count)
 
             elif text.startswith("/gen"):
                 parts = text.split()
